@@ -1,0 +1,330 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String    @map("password_hash")
+  firstName        String    @map("first_name")
+  lastName         String    @map("last_name")
+  phone            String?
+  city             String?
+  country          String?
+  photoUrl         String?   @map("photo_url")
+  bio              String?
+  preferences      Json      @default("{}")
+  isActive         Boolean   @default(true) @map("is_active")
+  isEmailVerified  Boolean   @default(false) @map("is_email_verified")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  lastLoginAt      DateTime? @map("last_login_at")
+
+  trips            Trip[]
+  savedDestinations SavedDestination[]
+  tripCollaborators TripCollaborator[]
+  tripReviews      TripReview[]
+  followedBy       UserFollow[] @relation("Following")
+  following        UserFollow[] @relation("Follower")
+
+  @@index([email])
+  @@index([createdAt])
+  @@index([isActive])
+  @@map("users")
+}
+
+model Country {
+  id               String   @id @default(uuid())
+  name             String   @unique
+  code             String   @unique
+  region           String?
+  subregion        String?
+  currencyCode     String?  @map("currency_code")
+  currencySymbol   String?  @map("currency_symbol")
+  averageCostIndex Decimal  @default(1.0) @map("average_cost_index") @db.Decimal(5, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  cities           City[]
+
+  @@index([name])
+  @@index([region])
+  @@map("countries")
+}
+
+model City {
+  id                   String   @id @default(uuid())
+  name                 String
+  countryId            String   @map("country_id")
+  latitude             Decimal? @db.Decimal(10, 8)
+  longitude            Decimal? @db.Decimal(11, 8)
+  timezone             String?
+  population           Int?
+  description          String?
+  imageUrl             String?  @map("image_url")
+  coverImageUrl        String?  @map("cover_image_url")
+  costIndex            Decimal  @default(1.0) @map("cost_index") @db.Decimal(5, 2)
+  accommodationAvgCost Decimal? @map("accommodation_avg_cost") @db.Decimal(10, 2)
+  foodAvgCost          Decimal? @map("food_avg_cost") @db.Decimal(10, 2)
+  transportAvgCost     Decimal? @map("transport_avg_cost") @db.Decimal(10, 2)
+  popularityScore      Int      @default(0) @map("popularity_score")
+  totalVisits          Int      @default(0) @map("total_visits")
+  bestTimeToVisit      String?  @map("best_time_to_visit")
+  climateType          String?  @map("climate_type")
+  languageSpoken       String?  @map("language_spoken")
+  isActive             Boolean  @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  country              Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  activities           Activity[]
+  tripStops            TripStop[]
+  savedDestinations    SavedDestination[]
+
+  @@unique([name, countryId])
+  @@index([countryId])
+  @@index([popularityScore])
+  @@index([costIndex])
+  @@index([name])
+  @@map("cities")
+}
+
+model ActivityCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  iconName    String?  @map("icon_name")
+  colorHex    String?  @map("color_hex")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  activities  Activity[]
+
+  @@index([slug])
+  @@map("activity_categories")
+}
+
+model Activity {
+  id              String    @id @default(uuid())
+  name            String
+  cityId          String    @map("city_id")
+  categoryId      String?   @map("category_id")
+  description     String?
+  longDescription String?   @map("long_description")
+  imageUrl        String?   @map("image_url")
+  cost            Decimal   @default(0) @db.Decimal(10, 2)
+  currencyCode    String    @default("USD") @map("currency_code")
+  isFree          Boolean   @default(false) @map("is_free")
+  durationMinutes Int?      @map("duration_minutes")
+  address         String?
+  latitude        Decimal?  @db.Decimal(10, 8)
+  longitude       Decimal?  @db.Decimal(11, 8)
+  rating          Decimal   @default(0.0) @db.Decimal(3, 2)
+  reviewCount     Int       @default(0) @map("review_count")
+  difficultyLevel String?   @map("difficulty_level")
+  suitableFor     String?   @map("suitable_for")
+  tags            String[]
+  requiresBooking Boolean   @default(false) @map("requires_booking")
+  bookingUrl      String?   @map("booking_url")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  city            City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  category        ActivityCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tripActivities  TripActivity[]
+
+  @@index([cityId])
+  @@index([categoryId])
+  @@index([cost])
+  @@index([rating])
+  @@index([isFree])
+  @@map("activities")
+}
+
+model Trip {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  name            String
+  description     String?
+  coverImageUrl   String?   @map("cover_image_url")
+  startDate       DateTime  @map("start_date") @db.Date
+  endDate         DateTime  @map("end_date") @db.Date
+  totalBudget     Decimal?  @map("total_budget") @db.Decimal(12, 2)
+  currencyCode    String    @default("USD") @map("currency_code")
+  actualCost      Decimal   @default(0) @map("actual_cost") @db.Decimal(12, 2)
+  totalStops      Int       @default(0) @map("total_stops")
+  totalActivities Int       @default(0) @map("total_activities")
+  isPublic        Boolean   @default(false) @map("is_public")
+  shareToken      String?   @unique @map("share_token")
+  viewCount       Int       @default(0) @map("view_count")
+  copyCount       Int       @default(0) @map("copy_count")
+  status          String    @default("planning")
+  isCollaborative Boolean   @default(false) @map("is_collaborative")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stops           TripStop[]
+  expenses        TripExpense[]
+  collaborators   TripCollaborator[]
+  reviews         TripReview[]
+
+  @@index([userId])
+  @@index([startDate, endDate])
+  @@index([status])
+  @@index([isPublic])
+  @@index([shareToken])
+  @@index([createdAt])
+  @@map("trips")
+}
+
+model TripStop {
+  id                     String    @id @default(uuid())
+  tripId                 String    @map("trip_id")
+  cityId                 String    @map("city_id")
+  arrivalDate            DateTime  @map("arrival_date") @db.Date
+  departureDate          DateTime  @map("departure_date") @db.Date
+  stopOrder              Int       @map("stop_order")
+  accommodationName      String?   @map("accommodation_name")
+  accommodationAddress   String?   @map("accommodation_address")
+  accommodationCost      Decimal?  @map("accommodation_cost") @db.Decimal(10, 2)
+  accommodationBookingUrl String?  @map("accommodation_booking_url")
+  transportType          String?   @map("transport_type")
+  transportCost          Decimal?  @map("transport_cost") @db.Decimal(10, 2)
+  transportDetails       String?   @map("transport_details")
+  notes                  String?
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  trip                   Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  city                   City      @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  activities             TripActivity[]
+
+  @@unique([tripId, stopOrder])
+  @@index([tripId, stopOrder])
+  @@index([cityId])
+  @@index([arrivalDate, departureDate])
+  @@map("trip_stops")
+}
+
+model TripActivity {
+  id               String    @id @default(uuid())
+  tripStopId       String    @map("trip_stop_id")
+  activityId       String    @map("activity_id")
+  scheduledDate    DateTime  @map("scheduled_date") @db.Date
+  scheduledTime    DateTime? @map("scheduled_time") @db.Time
+  activityOrder    Int       @map("activity_order")
+  actualCost       Decimal?  @map("actual_cost") @db.Decimal(10, 2)
+  notes            String?
+  status           String    @default("planned")
+  bookingReference String?   @map("booking_reference")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  tripStop         TripStop  @relation(fields: [tripStopId], references: [id], onDelete: Cascade)
+  activity         Activity  @relation(fields: [activityId], references: [id], onDelete: Restrict)
+
+  @@unique([tripStopId, scheduledDate, activityOrder])
+  @@index([tripStopId])
+  @@index([activityId])
+  @@index([scheduledDate])
+  @@index([status])
+  @@map("trip_activities")
+}
+
+model TripExpense {
+  id           String    @id @default(uuid())
+  tripId       String    @map("trip_id")
+  tripStopId   String?   @map("trip_stop_id")
+  category     String
+  description  String
+  amount       Decimal   @db.Decimal(10, 2)
+  currencyCode String    @default("USD") @map("currency_code")
+  expenseDate  DateTime  @map("expense_date") @db.Date
+  notes        String?
+  receiptUrl   String?   @map("receipt_url")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  trip         Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+  @@index([tripStopId])
+  @@index([category])
+  @@index([expenseDate])
+  @@map("trip_expenses")
+}
+
+model TripCollaborator {
+  id               String    @id @default(uuid())
+  tripId           String    @map("trip_id")
+  userId           String    @map("user_id")
+  permissionLevel  String    @default("view") @map("permission_level")
+  invitedBy        String?   @map("invited_by")
+  invitationStatus String    @default("pending") @map("invitation_status")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  acceptedAt       DateTime? @map("accepted_at")
+
+  trip             Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+  @@index([tripId])
+  @@index([userId])
+  @@map("trip_collaborators")
+}
+
+model SavedDestination {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  cityId    String   @map("city_id")
+  notes     String?
+  priority  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cityId])
+  @@index([userId, priority])
+  @@map("saved_destinations")
+}
+
+model TripReview {
+  id           String   @id @default(uuid())
+  tripId       String   @map("trip_id")
+  userId       String   @map("user_id")
+  rating       Int
+  reviewText   String?  @map("review_text")
+  helpfulCount Int      @default(0) @map("helpful_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  trip         Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+  @@index([tripId])
+  @@index([userId])
+  @@index([rating])
+  @@map("trip_reviews")
+}
+
+model UserFollow {
+  id          String   @id @default(uuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("user_follows")
+}

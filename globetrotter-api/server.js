@@ -3,7 +3,7 @@
  * - Auth (register, login, me)
  * - Profile endpoints
  * - Community sharing endpoints
- * In-memory data store for fast prototyping; swap with Postgres/Prisma later.
+ * Connected to Postgres via Prisma
  */
 
 require('dotenv').config()
@@ -11,7 +11,9 @@ const express = require('express')
 const cors = require('cors')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
-const { randomUUID } = require('crypto')
+const { PrismaClient } = require('@prisma/client')
+
+const prisma = new PrismaClient()
 
 const app = express()
 app.use(cors())
@@ -20,80 +22,18 @@ app.use(express.json())
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 const PORT = process.env.PORT || 5000
 
-// Mock data to unblock vertical slices; replace with Postgres reads/writes later.
-const users = [
-  {
-    id: randomUUID(),
-    email: 'demo@globetrotter.app',
-    passwordHash: bcrypt.hashSync('demo123', 10),
-    firstName: 'Demo',
-    lastName: 'Explorer',
-    photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e',
-    city: 'Lisbon',
-    country: 'Portugal',
-    bio: 'Finding beautiful journeys with GlobeTrotter.',
-    preferences: { language: 'en', currency: 'USD' },
-    isActive: true,
-    isEmailVerified: true,
-    lastLoginAt: new Date(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-]
-
-const popularDestinations = [
-  {
-    id: randomUUID(),
-    name: 'Kyoto',
-    country: 'Japan',
-    imageUrl: 'https://images.unsplash.com/photo-1504893524553-b8553f6c0fca',
-    costIndex: 1.2,
-    popularityScore: 92,
-  },
-  {
-    id: randomUUID(),
-    name: 'Lisbon',
-    country: 'Portugal',
-    imageUrl: 'https://images.unsplash.com/photo-1505761671935-60b3a7427bad',
-    costIndex: 0.9,
-    popularityScore: 88,
-  },
-  {
-    id: randomUUID(),
-    name: 'Reykjavík',
-    country: 'Iceland',
-    imageUrl: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21',
-    costIndex: 1.6,
-    popularityScore: 84,
-  },
-]
-
-const trips = [
-  {
-    id: randomUUID(),
-    userId: users[0].id,
-    name: 'Iberian Escape',
-    description: 'Lisbon, Porto, and coastal gems.',
-    isPublic: true,
-    shareToken: 'share-iberian-escape',
-    viewCount: 42,
-    copyCount: 6,
-    createdAt: new Date(),
-  },
-]
-
 function generateToken(user) {
   return jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' })
 }
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const header = req.headers.authorization || ''
   const token = header.startsWith('Bearer ') ? header.replace('Bearer ', '') : null
   if (!token) return res.status(401).json({ message: 'Missing bearer token' })
 
   try {
     const payload = jwt.verify(token, JWT_SECRET)
-    const user = users.find((u) => u.id === payload.id)
+    const user = await prisma.user.findUnique({ where: { id: payload.id } })
     if (!user) return res.status(401).json({ message: 'User not found' })
     req.user = user
     next()
@@ -108,50 +48,53 @@ app.get('/api/health', (_req, res) => {
 
 // Auth
 app.post('/api/auth/register', async (req, res) => {
-  const { email, password, firstName, lastName } = req.body || {}
-  if (!email || !password || !firstName || !lastName) {
-    return res.status(400).json({ message: 'Missing required fields' })
-  }
+  try {
+    const { email, password, firstName, lastName } = req.body || {}
+    if (!email || !password || !firstName || !lastName) {
+      return res.status(400).json({ message: 'Missing required fields' })
+    }
 
-  const existing = users.find((u) => u.email.toLowerCase() === email.toLowerCase())
-  if (existing) return res.status(409).json({ message: 'Email already registered' })
+    const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+    if (existing) return res.status(409).json({ message: 'Email already registered' })
 
-  const passwordHash = await bcrypt.hash(password, 10)
-  const user = {
-    id: randomUUID(),
-    email,
-    passwordHash,
-    firstName,
-    lastName,
-    photoUrl: '',
-    city: '',
-    country: '',
-    bio: '',
-    preferences: {},
-    isActive: true,
-    isEmailVerified: false,
-    lastLoginAt: new Date(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    const passwordHash = await bcrypt.hash(password, 10)
+    const user = await prisma.user.create({
+      data: {
+        email: email.toLowerCase(),
+        passwordHash,
+        firstName,
+        lastName,
+      },
+    })
+    const token = generateToken(user)
+    res.status(201).json({ token, user: sanitizeUser(user) })
+  } catch (err) {
+    console.error('Register error:', err)
+    res.status(500).json({ message: 'Registration failed' })
   }
-  users.push(user)
-  const token = generateToken(user)
-  res.status(201).json({ token, user: sanitizeUser(user) })
 })
 
 app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body || {}
-  if (!email || !password) return res.status(400).json({ message: 'Email and password required' })
+  try {
+    const { email, password } = req.body || {}
+    if (!email || !password) return res.status(400).json({ message: 'Email and password required' })
 
-  const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase())
-  if (!user) return res.status(401).json({ message: 'Invalid credentials' })
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+    if (!user) return res.status(401).json({ message: 'Invalid credentials' })
 
-  const ok = await bcrypt.compare(password, user.passwordHash)
-  if (!ok) return res.status(401).json({ message: 'Invalid credentials' })
+    const ok = await bcrypt.compare(password, user.passwordHash)
+    if (!ok) return res.status(401).json({ message: 'Invalid credentials' })
 
-  user.lastLoginAt = new Date()
-  const token = generateToken(user)
-  res.json({ token, user: sanitizeUser(user) })
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    })
+    const token = generateToken(user)
+    res.json({ token, user: sanitizeUser(user) })
+  } catch (err) {
+    console.error('Login error:', err)
+    res.status(500).json({ message: 'Login failed' })
+  }
 })
 
 app.get('/api/auth/me', requireAuth, (req, res) => {
@@ -159,71 +102,193 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
 })
 
 // Profile
-app.get('/api/users/:id/profile', requireAuth, (req, res) => {
-  const user = users.find((u) => u.id === req.params.id)
-  if (!user) return res.status(404).json({ message: 'User not found' })
-  res.json({ user: sanitizeUser(user) })
+app.get('/api/users/:id/profile', requireAuth, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } })
+    if (!user) return res.status(404).json({ message: 'User not found' })
+    res.json({ user: sanitizeUser(user) })
+  } catch (err) {
+    console.error('Get profile error:', err)
+    res.status(500).json({ message: 'Failed to fetch profile' })
+  }
 })
 
-app.put('/api/users/:id', requireAuth, (req, res) => {
-  if (req.user.id !== req.params.id) return res.status(403).json({ message: 'Forbidden' })
-  const { firstName, lastName, bio, city, country, photoUrl, preferences } = req.body || {}
-  Object.assign(req.user, {
-    firstName: firstName ?? req.user.firstName,
-    lastName: lastName ?? req.user.lastName,
-    bio: bio ?? req.user.bio,
-    city: city ?? req.user.city,
-    country: country ?? req.user.country,
-    photoUrl: photoUrl ?? req.user.photoUrl,
-    preferences: preferences ?? req.user.preferences,
-    updatedAt: new Date(),
-  })
-  res.json({ user: sanitizeUser(req.user) })
+app.put('/api/users/:id', requireAuth, async (req, res) => {
+  try {
+    if (req.user.id !== req.params.id) return res.status(403).json({ message: 'Forbidden' })
+    const { firstName, lastName, bio, city, country, photoUrl, preferences } = req.body || {}
+    
+    const updated = await prisma.user.update({
+      where: { id: req.params.id },
+      data: {
+        ...(firstName && { firstName }),
+        ...(lastName && { lastName }),
+        ...(bio !== undefined && { bio }),
+        ...(city !== undefined && { city }),
+        ...(country !== undefined && { country }),
+        ...(photoUrl !== undefined && { photoUrl }),
+        ...(preferences && { preferences }),
+      },
+    })
+    res.json({ user: sanitizeUser(updated) })
+  } catch (err) {
+    console.error('Update profile error:', err)
+    res.status(500).json({ message: 'Failed to update profile' })
+  }
 })
 
-app.get('/api/destinations/popular', (_req, res) => {
-  res.json({ items: popularDestinations })
+app.get('/api/destinations/popular', async (_req, res) => {
+  try {
+    const cities = await prisma.city.findMany({
+      where: { isActive: true },
+      include: { country: true },
+      orderBy: { popularityScore: 'desc' },
+      take: 12,
+    })
+    const items = cities.map((c) => ({
+      id: c.id,
+      name: c.name,
+      country: c.country.name,
+      imageUrl: c.imageUrl,
+      costIndex: c.costIndex,
+      popularityScore: c.popularityScore,
+    }))
+    res.json({ items })
+  } catch (err) {
+    console.error('Get popular destinations error:', err)
+    res.status(500).json({ message: 'Failed to fetch destinations', items: [] })
+  }
 })
 
 // Community & sharing
-app.post('/api/trips/:id/share', requireAuth, (req, res) => {
-  const trip = trips.find((t) => t.id === req.params.id && t.userId === req.user.id)
-  if (!trip) return res.status(404).json({ message: 'Trip not found' })
-  trip.isPublic = true
-  trip.shareToken = trip.shareToken || `share-${trip.id}`
-  trip.updatedAt = new Date()
-  res.json({ trip })
-})
-
-app.get('/api/trips/community', (_req, res) => {
-  const publicTrips = trips.filter((t) => t.isPublic)
-  res.json({ items: publicTrips })
-})
-
-app.get('/api/trips/public/:shareToken', (req, res) => {
-  const trip = trips.find((t) => t.shareToken === req.params.shareToken)
-  if (!trip) return res.status(404).json({ message: 'Public trip not found' })
-  res.json({ trip })
-})
-
-app.post('/api/trips/:id/copy', requireAuth, (req, res) => {
-  const source = trips.find((t) => t.id === req.params.id && t.isPublic)
-  if (!source) return res.status(404).json({ message: 'Trip not found or not public' })
-  const clone = {
-    ...source,
-    id: randomUUID(),
-    userId: req.user.id,
-    isPublic: false,
-    shareToken: null,
-    copyCount: 0,
-    viewCount: 0,
-    name: `${source.name} (copy)`,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+app.post('/api/trips/:id/share', requireAuth, async (req, res) => {
+  try {
+    const trip = await prisma.trip.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    })
+    if (!trip) return res.status(404).json({ message: 'Trip not found' })
+    
+    const updated = await prisma.trip.update({
+      where: { id: trip.id },
+      data: {
+        isPublic: true,
+        shareToken: trip.shareToken || `share-${trip.id.slice(0, 8)}`,
+      },
+    })
+    res.json({ trip: updated })
+  } catch (err) {
+    console.error('Share trip error:', err)
+    res.status(500).json({ message: 'Failed to share trip' })
   }
-  trips.push(clone)
-  source.copyCount = (source.copyCount || 0) + 1
-  res.status(201).json({ trip: clone })
+})
+
+app.get('/api/trips/community', async (_req, res) => {
+  try {
+    const publicTrips = await prisma.trip.findMany({
+      where: { isPublic: true },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, photoUrl: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    })
+    res.json({ items: publicTrips })
+  } catch (err) {
+    console.error('Get community trips error:', err)
+    res.status(500).json({ message: 'Failed to fetch community trips', items: [] })
+  }
+})
+
+app.get('/api/trips/public/:shareToken', async (req, res) => {
+  try {
+    const trip = await prisma.trip.findFirst({
+      where: { shareToken: req.params.shareToken, isPublic: true },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, photoUrl: true } },
+        stops: {
+          include: {
+            city: { include: { country: true } },
+            activities: { include: { activity: true } },
+          },
+          orderBy: { stopOrder: 'asc' },
+        },
+      },
+    })
+    if (!trip) return res.status(404).json({ message: 'Public trip not found' })
+    
+    await prisma.trip.update({
+      where: { id: trip.id },
+      data: { viewCount: { increment: 1 } },
+    })
+    res.json({ trip })
+  } catch (err) {
+    console.error('Get public trip error:', err)
+    res.status(500).json({ message: 'Failed to fetch public trip' })
+  }
+})
+
+app.post('/api/trips/:id/copy', requireAuth, async (req, res) => {
+  try {
+    const source = await prisma.trip.findFirst({
+      where: { id: req.params.id, isPublic: true },
+      include: {
+        stops: {
+          include: { activities: true },
+          orderBy: { stopOrder: 'asc' },
+        },
+      },
+    })
+    if (!source) return res.status(404).json({ message: 'Trip not found or not public' })
+    
+    const clone = await prisma.trip.create({
+      data: {
+        userId: req.user.id,
+        name: `${source.name} (copy)`,
+        description: source.description,
+        coverImageUrl: source.coverImageUrl,
+        startDate: source.startDate,
+        endDate: source.endDate,
+        totalBudget: source.totalBudget,
+        currencyCode: source.currencyCode,
+        isPublic: false,
+        status: 'planning',
+        stops: {
+          create: source.stops.map((stop) => ({
+            cityId: stop.cityId,
+            arrivalDate: stop.arrivalDate,
+            departureDate: stop.departureDate,
+            stopOrder: stop.stopOrder,
+            accommodationName: stop.accommodationName,
+            accommodationAddress: stop.accommodationAddress,
+            accommodationCost: stop.accommodationCost,
+            transportType: stop.transportType,
+            transportCost: stop.transportCost,
+            notes: stop.notes,
+            activities: {
+              create: stop.activities.map((act) => ({
+                activityId: act.activityId,
+                scheduledDate: act.scheduledDate,
+                scheduledTime: act.scheduledTime,
+                activityOrder: act.activityOrder,
+                actualCost: act.actualCost,
+                notes: act.notes,
+                status: 'planned',
+              })),
+            },
+          })),
+        },
+      },
+    })
+    
+    await prisma.trip.update({
+      where: { id: source.id },
+      data: { copyCount: { increment: 1 } },
+    })
+    res.status(201).json({ trip: clone })
+  } catch (err) {
+    console.error('Copy trip error:', err)
+    res.status(500).json({ message: 'Failed to copy trip' })
+  }
 })
 
 function sanitizeUser(user) {
@@ -233,4 +298,10 @@ function sanitizeUser(user) {
 
 app.listen(PORT, () => {
   console.log(`GlobeTrotter API running on http://localhost:${PORT}`)
+  console.log(`Database: ${process.env.DATABASE_URL ? 'Connected to Neon Postgres' : 'No database configured'}`)
+})
+
+process.on('SIGINT', async () => {
+  await prisma.$disconnect()
+  process.exit(0)
 })
