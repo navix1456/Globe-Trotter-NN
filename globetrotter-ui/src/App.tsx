@@ -302,33 +302,42 @@ function LandingPage() {
 
           <div className="features-grid-landing">
             <div className="feature-card-landing scroll-reveal hover-lift">
-              <div className="feature-icon-landing">
-                <Shield size={32} />
+              <div className="feature-card-bg" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop)' }}></div>
+              <div className="feature-card-overlay"></div>
+              <div className="feature-card-content">
+                <div className="feature-icon-landing">
+                  <Shield size={32} />
+                </div>
+                <h3>Secure & Private</h3>
+                <p>Your travel plans and personal data are protected with enterprise-grade security and encryption</p>
+                <span className="feature-badge badge-success">Active</span>
               </div>
-              <h3>Secure & Private</h3>
-              <p>Your travel plans and personal data are protected with enterprise-grade security and encryption</p>
-              <span className="feature-badge badge-success">Active</span>
-              <div className="feature-glow"></div>
             </div>
 
             <div className="feature-card-landing scroll-reveal hover-lift delay-1">
-              <div className="feature-icon-landing feature-icon-secondary">
-                <Heart size={32} />
+              <div className="feature-card-bg" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&h=400&fit=crop)' }}></div>
+              <div className="feature-card-overlay"></div>
+              <div className="feature-card-content">
+                <div className="feature-icon-landing feature-icon-secondary">
+                  <Heart size={32} />
+                </div>
+                <h3>Smart Recommendations</h3>
+                <p>Get personalized destination suggestions based on your preferences, budget, and travel style</p>
+                <span className="feature-badge badge-warning">Coming Soon</span>
               </div>
-              <h3>Smart Recommendations</h3>
-              <p>Get personalized destination suggestions based on your preferences, budget, and travel style</p>
-              <span className="feature-badge badge-warning">Coming Soon</span>
-              <div className="feature-glow glow-secondary"></div>
             </div>
 
             <div className="feature-card-landing scroll-reveal hover-lift delay-2">
-              <div className="feature-icon-landing feature-icon-accent">
-                <Share2 size={32} />
+              <div className="feature-card-bg" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=400&fit=crop)' }}></div>
+              <div className="feature-card-overlay"></div>
+              <div className="feature-card-content">
+                <div className="feature-icon-landing feature-icon-accent">
+                  <Share2 size={32} />
+                </div>
+                <h3>Community Driven</h3>
+                <p>Share your itineraries and discover amazing trips created by fellow travelers worldwide</p>
+                <span className="feature-badge badge-info">Beta</span>
               </div>
-              <h3>Community Driven</h3>
-              <p>Share your itineraries and discover amazing trips created by fellow travelers worldwide</p>
-              <span className="feature-badge badge-info">Beta</span>
-              <div className="feature-glow glow-accent"></div>
             </div>
           </div>
         </div>
@@ -347,32 +356,47 @@ function LandingPage() {
 
           <div className="steps-grid">
             <div className="step-card scroll-reveal hover-lift">
-              <div className="step-number">01</div>
-              <div className="step-icon">
-                <Users size={32} />
+              <div className="step-image-wrapper">
+                <img src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=400&h=250&fit=crop" alt="Create Account" className="step-image" />
+                <div className="step-number">01</div>
               </div>
-              <h3>Create Your Account</h3>
-              <p>Sign up for free and set your travel preferences to get personalized recommendations</p>
+              <div className="step-content">
+                <div className="step-icon">
+                  <Users size={32} />
+                </div>
+                <h3>Create Your Account</h3>
+                <p>Sign up for free and set your travel preferences to get personalized recommendations</p>
+              </div>
               <ChevronRight className="step-arrow" size={24} />
             </div>
 
             <div className="step-card scroll-reveal hover-lift delay-1">
-              <div className="step-number">02</div>
-              <div className="step-icon">
-                <MapPin size={32} />
+              <div className="step-image-wrapper">
+                <img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=250&fit=crop" alt="Plan Journey" className="step-image" />
+                <div className="step-number">02</div>
               </div>
-              <h3>Plan Your Journey</h3>
-              <p>Browse destinations, create itineraries, and collaborate with friends on your trip</p>
+              <div className="step-content">
+                <div className="step-icon">
+                  <MapPin size={32} />
+                </div>
+                <h3>Plan Your Journey</h3>
+                <p>Browse destinations, create itineraries, and collaborate with friends on your trip</p>
+              </div>
               <ChevronRight className="step-arrow" size={24} />
             </div>
 
             <div className="step-card scroll-reveal hover-lift delay-2">
-              <div className="step-number">03</div>
-              <div className="step-icon">
-                <Globe size={32} />
+              <div className="step-image-wrapper">
+                <img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=250&fit=crop" alt="Explore Share" className="step-image" />
+                <div className="step-number">03</div>
               </div>
-              <h3>Explore & Share</h3>
-              <p>Discover hidden gems, share your experiences, and inspire other travelers</p>
+              <div className="step-content">
+                <div className="step-icon">
+                  <Globe size={32} />
+                </div>
+                <h3>Explore & Share</h3>
+                <p>Discover hidden gems, share your experiences, and inspire other travelers</p>
+              </div>
             </div>
           </div>
         </div>
