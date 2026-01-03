@@ -219,18 +219,18 @@ function LandingPage() {
             <Compass size={18} />
             <span>Your Journey, Perfected</span>
           </div>
-          
-          <h1 className="hero-title-landing animate-fade-in-up">
+
+          <h1 className="hero-title-landing">
             Discover the World <br />
             with <span className="text-gradient-landing">GlobeTrotter</span>
           </h1>
-          
-          <p className="hero-description-landing animate-fade-in-up delay-1">
-            Plan breathtaking adventures, connect with fellow travelers, and turn your 
+
+          <p className="hero-description-landing">
+            Plan breathtaking adventures, connect with fellow travelers, and turn your
             dream destinations into unforgettable memories. Start your journey today.
           </p>
-          
-          <div className="hero-actions-landing animate-fade-in-up delay-2">
+
+          <div className="hero-actions-landing">
             {user ? (
               <button onClick={() => navigate('/dashboard')} className="btn-hero btn-hero-primary pulse-on-hover">
                 <Compass size={20} />
@@ -415,24 +415,20 @@ function LandingPage() {
             </p>
           </div>
 
-          <div className="trips-showcase-grid">
-            {featuredTrips.map((trip) => (
-              <div key={trip.id} className="trip-showcase-card scroll-reveal hover-lift">
-                <div className="trip-image-wrapper">
-                  <img src={trip.image} alt={trip.title} className="trip-image" />
-                  <div className="trip-overlay">
-                    <button className="btn-view-trip" onClick={() => navigate('/community')}>
-                      View Details <ArrowRight size={16} />
-                    </button>
-                  </div>
-                </div>
-                <div className="trip-content">
-                  <div className="trip-meta">
-                    <span className="trip-duration">📅 {trip.duration}</span>
-                    <span className="trip-rating">⭐ {trip.rating} ({trip.reviewCount})</span>
-                  </div>
-                  <h3 className="trip-title">{trip.title}</h3>
-                  <p className="trip-description">{trip.description}</p>
+          <div className="testimonials-grid">
+            <div className="testimonial-card">
+              <div className="stars">
+                {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="currentColor" />)}
+              </div>
+              <p className="testimonial-text">
+                "GlobeTrotter made planning our European vacation so easy! The community features
+                helped us discover hidden gems we never would have found on our own."
+              </p>
+              <div className="testimonial-author">
+                <div className="author-avatar">SM</div>
+                <div>
+                  <div className="author-name">Sarah Martinez</div>
+                  <div className="author-location">New York, USA</div>
                 </div>
               </div>
             ))}
@@ -440,31 +436,37 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Gallery Section - Popular Destinations */}
-      <section className="gallery-section scroll-reveal">
-        <div className="container">
-          <div className="section-header-landing scroll-reveal">
-            <span className="section-badge">Inspiration Gallery</span>
-            <h2 className="section-title-landing">Explore Breathtaking Destinations</h2>
-            <p className="section-description-landing">
-              Get inspired by stunning locations our travelers have discovered
-            </p>
-          </div>
-
-          <div className="gallery-grid">
-            <div className="gallery-item gallery-item-large scroll-reveal hover-lift">
-              <img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=500&fit=crop" alt="Parisian Streets" />
-              <div className="gallery-overlay">
-                <h3>Parisian Charm</h3>
-                <p>12 days</p>
+            <div className="testimonial-card">
+              <div className="stars">
+                {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="currentColor" />)}
+              </div>
+              <p className="testimonial-text">
+                "The best travel planning platform I've used. Love how I can share my itineraries
+                with friends and get real-time updates. Highly recommended!"
+              </p>
+              <div className="testimonial-author">
+                <div className="author-avatar">JC</div>
+                <div>
+                  <div className="author-name">James Chen</div>
+                  <div className="author-location">Singapore</div>
+                </div>
               </div>
             </div>
 
-            <div className="gallery-item scroll-reveal hover-lift delay-1">
-              <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop" alt="Mountain Peak" />
-              <div className="gallery-overlay">
-                <h3>Alpine Adventure</h3>
-                <p>8 days</p>
+            <div className="testimonial-card">
+              <div className="stars">
+                {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="currentColor" />)}
+              </div>
+              <p className="testimonial-text">
+                "As a solo traveler, GlobeTrotter's community feature has been amazing. I've met
+                so many wonderful people and gotten incredible travel tips!"
+              </p>
+              <div className="testimonial-author">
+                <div className="author-avatar">EP</div>
+                <div>
+                  <div className="author-name">Emma Patel</div>
+                  <div className="author-location">London, UK</div>
+                </div>
               </div>
             </div>
 
@@ -695,4 +697,4 @@ function App() {
   )
 }
 
-export default App
+export default App;
