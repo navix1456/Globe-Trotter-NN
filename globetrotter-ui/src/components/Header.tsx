@@ -1,84 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Search, SlidersHorizontal, Filter, ArrowUpDown, Plus, Menu, X, User as UserIcon, LogOut, Calendar as CalendarIcon } from 'lucide-react'
-import api from '../lib/api'
+import { Search, Filter, Menu, X, User as UserIcon, LogOut, Calendar as CalendarIcon, Compass, Users } from 'lucide-react'
 
-interface Destination {
-  id: string
-  name: string
-  country: string
-  imageUrl: string | null
-  costIndex: number
-  popularityScore: number
-}
-
-interface Trip {
-  id: string
-  name: string
-  description: string | null
-  coverImageUrl: string | null
-  startDate: string | null
-  endDate: string | null
-}
-
-export default function DashboardPage() {
+export default function Header() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [destinations, setDestinations] = useState<Destination[]>([])
-  const [trips, setTrips] = useState<Trip[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    try {
-      const [destRes] = await Promise.all([
-        api.get('/destinations/popular')
-      ])
-      setDestinations(destRes.data.items?.slice(0, 5) || [])
-      // Mock trips data for now until Developer B implements trip endpoints
-      setTrips([
-        {
-          id: '1',
-          name: 'European Adventure',
-          description: 'Exploring historic cities',
-          coverImageUrl: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a',
-          startDate: '2026-06-01',
-          endDate: '2026-06-15'
-        },
-        {
-          id: '2',
-          name: 'Asian Escape',
-          description: 'Cultural immersion in Asia',
-          coverImageUrl: 'https://images.unsplash.com/photo-1480796927426-f609979314bd',
-          startDate: '2026-08-10',
-          endDate: '2026-08-25'
-        },
-        {
-          id: '3',
-          name: 'Beach Paradise',
-          description: 'Relaxing tropical getaway',
-          coverImageUrl: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19',
-          startDate: '2026-09-05',
-          endDate: '2026-09-12'
-        }
-      ])
-    } catch (err) {
-      console.error('Failed to load data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <div style={{ minHeight: '100vh', background: '#fdfcfb' }}>
-      {/* Header with Search */}
+    <>
+      {/* Header */}
       <div style={{
         background: 'white',
         borderBottom: '2px solid #e7e5e4',
@@ -216,6 +150,7 @@ export default function DashboardPage() {
             }}>
               Sort by...
             </button>
+          </div>
 
           {/* Profile Avatar with Dropdown */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -368,7 +303,6 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-          </div>
         </div>
       </div>
 
@@ -447,11 +381,15 @@ export default function DashboardPage() {
               cursor: 'pointer',
               marginBottom: '0.75rem',
               textAlign: 'left',
-              transition: 'transform 0.2s'
+              transition: 'transform 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
             }}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(5px)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateX(0)'}
           >
+            <Compass size={20} />
             Dashboard
           </button>
           <button
@@ -468,7 +406,10 @@ export default function DashboardPage() {
               cursor: 'pointer',
               marginBottom: '0.75rem',
               textAlign: 'left',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
             }}
             onMouseEnter={(e) => { 
               e.currentTarget.style.background = 'rgba(45,139,131,0.1)'
@@ -479,23 +420,9 @@ export default function DashboardPage() {
               e.currentTarget.style.background = 'white'
               e.currentTarget.style.borderColor = '#e7e5e4'
               e.currentTarget.style.transform = 'translateX(0)'
-        
-
-      {/* Profile Dropdown Overlay */}
-      {profileDropdownOpen && (
-        <div
-          onClick={() => setProfileDropdownOpen(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 140
-          }}
-        />
-      )}    }}
+            }}
           >
+            <UserIcon size={20} />
             Profile
           </button>
           <button
@@ -512,7 +439,10 @@ export default function DashboardPage() {
               cursor: 'pointer',
               marginBottom: '0.75rem',
               textAlign: 'left',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
             }}
             onMouseEnter={(e) => { 
               e.currentTarget.style.background = 'rgba(45,139,131,0.1)'
@@ -525,6 +455,7 @@ export default function DashboardPage() {
               e.currentTarget.style.transform = 'translateX(0)'
             }}
           >
+            <Users size={20} />
             Community
           </button>
         </div>
@@ -631,7 +562,7 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Overlay */}
+      {/* Menu Overlay */}
       {menuOpen && (
         <div
           onClick={() => setMenuOpen(false)}
@@ -648,153 +579,20 @@ export default function DashboardPage() {
         />
       )}
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        {/* Banner Image */}
-        <div style={{
-          height: '350px',
-          background: 'linear-gradient(135deg, #2d8b83 0%, #4db0a8 100%)',
-          borderRadius: '1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '3rem',
-          boxShadow: '0 8px 24px rgba(45,139,131,0.2)',
-          border: '3px solid white',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: 'url(https://images.unsplash.com/photo-1488646953014-85cb44e25828)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 0.3
-          }} />
-          <h1 style={{
-            fontSize: '4rem',
-            fontWeight: 700,
-            color: 'white',
-            textShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            position: 'relative',
-            zIndex: 1
-          }}>
-            Banner Image
-          </h1>
-        </div>
-
-        {/* Top Regional Selections */}
-        <section style={{ marginBottom: '3rem' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1c1917', marginBottom: '1.5rem' }}>
-            Top Regional Selections -
-          </h2>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '3px solid #e7e5e4', borderTop: '3px solid #2d8b83', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-              <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); }}`}</style>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1.5rem' }}>
-              {destinations.slice(0, 5).map((dest, idx) => (
-                <div key={dest.id} style={{
-                  aspectRatio: '1',
-                  background: dest.imageUrl ? `url(${dest.imageUrl}) center/cover` : 'linear-gradient(135deg, #2d8b83 0%, #4db0a8 100%)',
-                  borderRadius: '1rem',
-                  border: '3px solid white',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.15)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)' }}>
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.7))',
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    padding: '1rem'
-                  }}>
-                    <div>
-                      <div style={{ color: 'white', fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>{dest.name}</div>
-                      <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>{dest.country}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Previous Trips */}
-        <section style={{ position: 'relative' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1c1917', marginBottom: '1.5rem' }}>
-            Previous Trips -
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
-            {trips.map((trip) => (
-              <div key={trip.id} style={{
-                background: 'white',
-                borderRadius: '1rem',
-                border: '3px solid white',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                overflow: 'hidden',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.15)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)' }}>
-                <div style={{
-                  height: '250px',
-                  background: trip.coverImageUrl ? `url(${trip.coverImageUrl}) center/cover` : 'linear-gradient(135deg, #2d8b83 0%, #4db0a8 100%)'
-                }} />
-                <div style={{ padding: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1c1917', marginBottom: '0.5rem' }}>{trip.name}</h3>
-                  {trip.description && (
-                    <p style={{ color: '#78716c', fontSize: '0.95rem', marginBottom: '1rem' }}>{trip.description}</p>
-                  )}
-                  {trip.startDate && trip.endDate && (
-                    <div style={{ fontSize: '0.875rem', color: '#a8a29e', fontWeight: 600 }}>
-                      {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Plan a Trip Button */}
-          <button
-            onClick={() => navigate('/create-trip')}
-            style={{
-              position: 'fixed',
-              bottom: '2rem',
-              right: '2rem',
-              background: 'linear-gradient(135deg, #2d8b83 0%, #236f69 100%)',
-              color: 'white',
-              border: 'none',
-              padding: '1rem 1.5rem',
-              borderRadius: '2rem',
-              fontSize: '1rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 8px 24px rgba(45,139,131,0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              transition: 'all 0.2s',
-              zIndex: 50
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(45,139,131,0.5)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(45,139,131,0.4)' }}
-          >
-            <Plus size={20} />
-            Plan a Trip
-          </button>
-        </section>
-      </div>
-    </div>
+      {/* Profile Dropdown Overlay */}
+      {profileDropdownOpen && (
+        <div
+          onClick={() => setProfileDropdownOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 140
+          }}
+        />
+      )}
+    </>
   )
 }

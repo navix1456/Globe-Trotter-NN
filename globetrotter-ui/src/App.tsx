@@ -1,10 +1,20 @@
 import { Routes, Route, useNavigate } from 'react-router-dom'
-import { Globe, MapPin, Users, Shield, Compass, Heart, Share2, Menu, X, ChevronRight, Star, Award, Zap } from 'lucide-react'
+import { Globe, MapPin, Users, Shield, Compass, Heart, Share2, Menu, X, ChevronRight, Star, Award, Zap, ArrowRight, Play } from 'lucide-react'
 import './App.css'
+import './animations.css'
 import { useAuth } from './contexts/AuthContext'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
+import ProfilePage from './pages/ProfilePage'
+import CommunityPage from './pages/CommunityPage'
+import CreateTripPage from './pages/CreateTripPage'
+import BuildItineraryPage from './pages/BuildItineraryPage'
+import TripListingPage from './pages/TripListingPage'
+import SearchPage from './pages/SearchPage'
+import ItineraryViewPage from './pages/ItineraryViewPage'
+import CalendarPage from './pages/CalendarPage'
+import AdminPanelPage from './pages/AdminPanelPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useState, useEffect } from 'react'
 
@@ -15,6 +25,7 @@ function LandingPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState<boolean[]>([false, false, false])
 
   const heroImages = [
     'https://yqtxgxkwrygjruitbytv.supabase.co/storage/v1/object/public/ODOO/Create_a_dynamic_1080p_202601030933-ezgif.com-crop.webp',
@@ -22,10 +33,82 @@ function LandingPage() {
     'https://yqtxgxkwrygjruitbytv.supabase.co/storage/v1/object/public/ODOO/Create_a_cinematic_1080p_202601030912-ezgif.com-crop.webp',
   ]
 
+  const featuredTrips = [
+    {
+      id: 1,
+      title: 'European Adventure',
+      description: 'Explore historic cities and cultural landmarks',
+      image: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&h=400&fit=crop',
+      rating: 4.8,
+      reviewCount: 234,
+      duration: '14 days'
+    },
+    {
+      id: 2,
+      title: 'Asian Escapade',
+      description: 'Journey through temples and vibrant markets',
+      image: 'https://images.unsplash.com/photo-1480796927426-f609979314bd?w=600&h=400&fit=crop',
+      rating: 4.9,
+      reviewCount: 456,
+      duration: '21 days'
+    },
+    {
+      id: 3,
+      title: 'Beach Paradise',
+      description: 'Relax on pristine beaches and crystal waters',
+      image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&h=400&fit=crop',
+      rating: 4.7,
+      reviewCount: 189,
+      duration: '7 days'
+    }
+  ]
+
+  const testimonialUsers = [
+    {
+      id: 1,
+      name: 'Sarah Martinez',
+      location: 'New York, USA',
+      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
+      text: 'GlobeTrotter made planning our European vacation so easy! The community features helped us discover hidden gems we never would have found.',
+      rating: 5
+    },
+    {
+      id: 2,
+      name: 'James Chen',
+      location: 'Singapore',
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
+      text: 'The best travel planning platform I\'ve used. Love how I can share itineraries with friends and get real-time updates.',
+      rating: 5
+    },
+    {
+      id: 3,
+      name: 'Emma Patel',
+      location: 'London, UK',
+      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
+      text: 'As a solo traveler, GlobeTrotter\'s community feature has been amazing. I\'ve met wonderful people and gotten incredible travel tips!',
+      rating: 5
+    }
+  ]
+
+  // Preload images
+  useEffect(() => {
+    heroImages.forEach((src, index) => {
+      const img = new Image()
+      img.src = src
+      img.onload = () => {
+        setImageLoaded(prev => {
+          const newState = [...prev]
+          newState[index] = true
+          return newState
+        })
+      }
+    })
+  }, [])
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % heroImages.length)
-    }, 5000)
+    }, 8000)
     return () => clearInterval(interval)
   }, [])
 
@@ -35,6 +118,39 @@ function LandingPage() {
     }
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Smooth scroll
+  useEffect(() => {
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', (e) => {
+        e.preventDefault()
+        const target = document.querySelector((e.currentTarget as HTMLAnchorElement).getAttribute('href')!)
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      })
+    })
+  }, [])
+
+  // Intersection Observer for scroll animations
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-in')
+          }
+        })
+      },
+      { threshold: 0.1 }
+    )
+
+    document.querySelectorAll('.scroll-reveal').forEach((el) => {
+      observer.observe(el)
+    })
+
+    return () => observer.disconnect()
   }, [])
 
   return (
@@ -58,6 +174,7 @@ function LandingPage() {
           <div className="nav-actions">
             {user ? (
               <button onClick={() => navigate('/dashboard')} className="btn-nav btn-nav-primary">
+                <Compass size={18} />
                 Dashboard
               </button>
             ) : (
@@ -66,6 +183,7 @@ function LandingPage() {
                   Sign In
                 </button>
                 <button onClick={() => navigate('/register')} className="btn-nav btn-nav-primary">
+                  <ArrowRight size={18} />
                   Get Started
                 </button>
               </>
@@ -78,55 +196,63 @@ function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section with Slideshow */}
+      {/* Hero Section with Enhanced Slideshow */}
       <section id="home" className="hero-landing">
         <div className="hero-slideshow">
           {heroImages.map((image, index) => (
             <div
               key={image}
-              className={`hero-slide ${index === currentImageIndex ? 'active' : ''}`}
-              style={{ backgroundImage: `url(${image})` }}
-            />
+              className={`hero-slide ${index === currentImageIndex ? 'active' : ''} ${imageLoaded[index] ? 'loaded' : ''}`}
+            >
+              <div 
+                className="hero-slide-image"
+                style={{ backgroundImage: `url(${image})` }}
+              />
+            </div>
           ))}
           <div className="hero-overlay" />
+          <div className="hero-pattern" />
         </div>
 
         <div className="hero-content-landing">
-          <div className="hero-badge-landing">
+          <div className="hero-badge-landing animate-fade-in">
             <Compass size={18} />
             <span>Your Journey, Perfected</span>
           </div>
           
-          <h1 className="hero-title-landing">
+          <h1 className="hero-title-landing animate-fade-in-up">
             Discover the World <br />
             with <span className="text-gradient-landing">GlobeTrotter</span>
           </h1>
           
-          <p className="hero-description-landing">
+          <p className="hero-description-landing animate-fade-in-up delay-1">
             Plan breathtaking adventures, connect with fellow travelers, and turn your 
             dream destinations into unforgettable memories. Start your journey today.
           </p>
           
-          <div className="hero-actions-landing">
+          <div className="hero-actions-landing animate-fade-in-up delay-2">
             {user ? (
-              <button onClick={() => navigate('/dashboard')} className="btn-hero btn-hero-primary">
+              <button onClick={() => navigate('/dashboard')} className="btn-hero btn-hero-primary pulse-on-hover">
                 <Compass size={20} />
                 Go to Dashboard
+                <ArrowRight size={20} />
               </button>
             ) : (
               <>
-                <button onClick={() => navigate('/register')} className="btn-hero btn-hero-primary">
+                <button onClick={() => navigate('/register')} className="btn-hero btn-hero-primary pulse-on-hover">
                   <Compass size={20} />
                   Start Planning Free
+                  <ArrowRight size={20} />
                 </button>
                 <button onClick={() => navigate('/login')} className="btn-hero btn-hero-secondary">
-                  Sign In
+                  <Play size={18} />
+                  Watch Demo
                 </button>
               </>
             )}
           </div>
 
-          <div className="slide-indicators">
+          <div className="slide-indicators animate-fade-in-up delay-3">
             {heroImages.map((_, index) => (
               <button
                 key={index}
@@ -139,10 +265,34 @@ function LandingPage() {
         </div>
       </section>
 
+      {/* Trust Banner */}
+      <section className="trust-banner scroll-reveal">
+        <div className="container">
+          <div className="trust-items">
+            <div className="trust-item">
+              <Shield size={24} />
+              <span>100% Secure</span>
+            </div>
+            <div className="trust-item">
+              <Users size={24} />
+              <span>10K+ Travelers</span>
+            </div>
+            <div className="trust-item">
+              <Star size={24} />
+              <span>4.9/5 Rating</span>
+            </div>
+            <div className="trust-item">
+              <Globe size={24} />
+              <span>150+ Countries</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section id="features" className="features-section">
         <div className="container">
-          <div className="section-header-landing">
+          <div className="section-header-landing scroll-reveal">
             <span className="section-badge">Why Choose GlobeTrotter</span>
             <h2 className="section-title-landing">Everything You Need for the Perfect Trip</h2>
             <p className="section-description-landing">
@@ -151,31 +301,34 @@ function LandingPage() {
           </div>
 
           <div className="features-grid-landing">
-            <div className="feature-card-landing">
+            <div className="feature-card-landing scroll-reveal hover-lift">
               <div className="feature-icon-landing">
                 <Shield size={32} />
               </div>
               <h3>Secure & Private</h3>
               <p>Your travel plans and personal data are protected with enterprise-grade security and encryption</p>
               <span className="feature-badge badge-success">Active</span>
+              <div className="feature-glow"></div>
             </div>
 
-            <div className="feature-card-landing">
+            <div className="feature-card-landing scroll-reveal hover-lift delay-1">
               <div className="feature-icon-landing feature-icon-secondary">
                 <Heart size={32} />
               </div>
               <h3>Smart Recommendations</h3>
               <p>Get personalized destination suggestions based on your preferences, budget, and travel style</p>
               <span className="feature-badge badge-warning">Coming Soon</span>
+              <div className="feature-glow glow-secondary"></div>
             </div>
 
-            <div className="feature-card-landing">
+            <div className="feature-card-landing scroll-reveal hover-lift delay-2">
               <div className="feature-icon-landing feature-icon-accent">
                 <Share2 size={32} />
               </div>
               <h3>Community Driven</h3>
               <p>Share your itineraries and discover amazing trips created by fellow travelers worldwide</p>
               <span className="feature-badge badge-info">Beta</span>
+              <div className="feature-glow glow-accent"></div>
             </div>
           </div>
         </div>
@@ -184,7 +337,7 @@ function LandingPage() {
       {/* How It Works Section */}
       <section id="how-it-works" className="how-it-works-section">
         <div className="container">
-          <div className="section-header-landing">
+          <div className="section-header-landing scroll-reveal">
             <span className="section-badge">Simple Process</span>
             <h2 className="section-title-landing">How GlobeTrotter Works</h2>
             <p className="section-description-landing">
@@ -193,7 +346,7 @@ function LandingPage() {
           </div>
 
           <div className="steps-grid">
-            <div className="step-card">
+            <div className="step-card scroll-reveal hover-lift">
               <div className="step-number">01</div>
               <div className="step-icon">
                 <Users size={32} />
@@ -203,7 +356,7 @@ function LandingPage() {
               <ChevronRight className="step-arrow" size={24} />
             </div>
 
-            <div className="step-card">
+            <div className="step-card scroll-reveal hover-lift delay-1">
               <div className="step-number">02</div>
               <div className="step-icon">
                 <MapPin size={32} />
@@ -213,7 +366,7 @@ function LandingPage() {
               <ChevronRight className="step-arrow" size={24} />
             </div>
 
-            <div className="step-card">
+            <div className="step-card scroll-reveal hover-lift delay-2">
               <div className="step-number">03</div>
               <div className="step-icon">
                 <Globe size={32} />
@@ -225,109 +378,152 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="testimonials-section">
+
+
+      {/* Featured Trips Section */}
+      <section className="featured-trips-section scroll-reveal">
         <div className="container">
-          <div className="section-header-landing">
-            <span className="section-badge">What Travelers Say</span>
-            <h2 className="section-title-landing">Loved by Thousands of Travelers</h2>
+          <div className="section-header-landing scroll-reveal">
+            <span className="section-badge">Explore Popular Destinations</span>
+            <h2 className="section-title-landing">Featured Trip Experiences</h2>
+            <p className="section-description-landing">
+              Discover inspiring journeys created by our community travelers
+            </p>
           </div>
 
-          <div className="testimonials-grid">
-            <div className="testimonial-card">
-              <div className="stars">
-                {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="currentColor" />)}
-              </div>
-              <p className="testimonial-text">
-                "GlobeTrotter made planning our European vacation so easy! The community features 
-                helped us discover hidden gems we never would have found on our own."
-              </p>
-              <div className="testimonial-author">
-                <div className="author-avatar">SM</div>
-                <div>
-                  <div className="author-name">Sarah Martinez</div>
-                  <div className="author-location">New York, USA</div>
+          <div className="trips-showcase-grid">
+            {featuredTrips.map((trip) => (
+              <div key={trip.id} className="trip-showcase-card scroll-reveal hover-lift">
+                <div className="trip-image-wrapper">
+                  <img src={trip.image} alt={trip.title} className="trip-image" />
+                  <div className="trip-overlay">
+                    <button className="btn-view-trip" onClick={() => navigate('/community')}>
+                      View Details <ArrowRight size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div className="trip-content">
+                  <div className="trip-meta">
+                    <span className="trip-duration">📅 {trip.duration}</span>
+                    <span className="trip-rating">⭐ {trip.rating} ({trip.reviewCount})</span>
+                  </div>
+                  <h3 className="trip-title">{trip.title}</h3>
+                  <p className="trip-description">{trip.description}</p>
                 </div>
               </div>
-            </div>
-
-            <div className="testimonial-card">
-              <div className="stars">
-                {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="currentColor" />)}
-              </div>
-              <p className="testimonial-text">
-                "The best travel planning platform I've used. Love how I can share my itineraries 
-                with friends and get real-time updates. Highly recommended!"
-              </p>
-              <div className="testimonial-author">
-                <div className="author-avatar">JC</div>
-                <div>
-                  <div className="author-name">James Chen</div>
-                  <div className="author-location">Singapore</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="testimonial-card">
-              <div className="stars">
-                {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="currentColor" />)}
-              </div>
-              <p className="testimonial-text">
-                "As a solo traveler, GlobeTrotter's community feature has been amazing. I've met 
-                so many wonderful people and gotten incredible travel tips!"
-              </p>
-              <div className="testimonial-author">
-                <div className="author-avatar">EP</div>
-                <div>
-                  <div className="author-name">Emma Patel</div>
-                  <div className="author-location">London, UK</div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="stats-section">
+      {/* Gallery Section - Popular Destinations */}
+      <section className="gallery-section scroll-reveal">
         <div className="container">
-          <div className="stats-grid">
-            <div className="stat-card">
-              <Award size={40} className="stat-icon" />
-              <div className="stat-number">10K+</div>
-              <div className="stat-label">Happy Travelers</div>
+          <div className="section-header-landing scroll-reveal">
+            <span className="section-badge">Inspiration Gallery</span>
+            <h2 className="section-title-landing">Explore Breathtaking Destinations</h2>
+            <p className="section-description-landing">
+              Get inspired by stunning locations our travelers have discovered
+            </p>
+          </div>
+
+          <div className="gallery-grid">
+            <div className="gallery-item gallery-item-large scroll-reveal hover-lift">
+              <img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=500&fit=crop" alt="Parisian Streets" />
+              <div className="gallery-overlay">
+                <h3>Parisian Charm</h3>
+                <p>12 days</p>
+              </div>
             </div>
-            <div className="stat-card">
-              <Globe size={40} className="stat-icon" />
-              <div className="stat-number">150+</div>
-              <div className="stat-label">Countries Covered</div>
+
+            <div className="gallery-item scroll-reveal hover-lift delay-1">
+              <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop" alt="Mountain Peak" />
+              <div className="gallery-overlay">
+                <h3>Alpine Adventure</h3>
+                <p>8 days</p>
+              </div>
             </div>
-            <div className="stat-card">
-              <MapPin size={40} className="stat-icon" />
-              <div className="stat-number">50K+</div>
-              <div className="stat-label">Trips Planned</div>
+
+            <div className="gallery-item scroll-reveal hover-lift delay-2">
+              <img src="https://images.unsplash.com/photo-1512207736139-c3c1b2db3a00?w=400&h=400&fit=crop" alt="Tropical Beach" />
+              <div className="gallery-overlay">
+                <h3>Tropical Paradise</h3>
+                <p>7 days</p>
+              </div>
             </div>
-            <div className="stat-card">
-              <Zap size={40} className="stat-icon" />
-              <div className="stat-number">4.9★</div>
-              <div className="stat-label">User Rating</div>
+
+            <div className="gallery-item scroll-reveal hover-lift delay-1">
+              <img src="https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400&h=400&fit=crop" alt="City Lights" />
+              <div className="gallery-overlay">
+                <h3>Metropolitan Wonder</h3>
+                <p>5 days</p>
+              </div>
+            </div>
+
+            <div className="gallery-item gallery-item-large scroll-reveal hover-lift delay-2">
+              <img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&h=500&fit=crop" alt="Desert Sunset" />
+              <div className="gallery-overlay">
+                <h3>Desert Exploration</h3>
+                <p>6 days</p>
+              </div>
+            </div>
+
+            <div className="gallery-item scroll-reveal hover-lift delay-1">
+              <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=400&fit=crop" alt="Ocean Wave" />
+              <div className="gallery-overlay">
+                <h3>Coastal Escape</h3>
+                <p>10 days</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="cta-section">
+      <section className="cta-section scroll-reveal">
         <div className="container">
           <div className="cta-content">
             <h2>Ready to Start Your Adventure?</h2>
             <p>Join thousands of travelers who trust GlobeTrotter to plan their perfect journeys</p>
             {!user && (
-              <button onClick={() => navigate('/register')} className="btn-cta">
+              <button onClick={() => navigate('/register')} className="btn-cta pulse-on-hover">
                 <Compass size={24} />
                 Create Free Account
+                <ArrowRight size={24} />
               </button>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section with Images */}
+      <section id="testimonials" className="testimonials-section-enhanced scroll-reveal">
+        <div className="container">
+          <div className="section-header-landing scroll-reveal">
+            <span className="section-badge">What Travelers Say</span>
+            <h2 className="section-title-landing">Loved by Travelers Worldwide</h2>
+            <p className="section-description-landing">
+              Join thousands who have transformed their travel experiences with GlobeTrotter
+            </p>
+          </div>
+
+          <div className="testimonials-enhanced-grid">
+            {testimonialUsers.map((user, idx) => (
+              <div key={user.id} className={`testimonial-card-enhanced scroll-reveal hover-lift ${idx === 1 ? 'delay-1' : idx === 2 ? 'delay-2' : ''}`}>
+                <div className="testimonial-header-enhanced">
+                  <img src={user.image} alt={user.name} className="user-avatar-image" />
+                  <div className="user-info-enhanced">
+                    <h4 className="user-name-enhanced">{user.name}</h4>
+                    <p className="user-location-enhanced">📍 {user.location}</p>
+                  </div>
+                </div>
+                <div className="stars-enhanced">
+                  {[...Array(user.rating)].map((_, i) => <Star key={i} size={16} fill="#fbbf24" color="#fbbf24" />)}
+                </div>
+                <p className="testimonial-text-enhanced">"{user.text}"</p>
+                <div className="testimonial-badge">Verified Traveler</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -396,6 +592,78 @@ function App() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/community"
+        element={
+          <ProtectedRoute>
+            <CommunityPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create-trip"
+        element={
+          <ProtectedRoute>
+            <CreateTripPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/build-itinerary"
+        element={
+          <ProtectedRoute>
+            <BuildItineraryPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trips"
+        element={
+          <ProtectedRoute>
+            <TripListingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/search"
+        element={
+          <ProtectedRoute>
+            <SearchPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/itinerary-view"
+        element={
+          <ProtectedRoute>
+            <ItineraryViewPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/calendar"
+        element={
+          <ProtectedRoute>
+            <CalendarPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <AdminPanelPage />
           </ProtectedRoute>
         }
       />

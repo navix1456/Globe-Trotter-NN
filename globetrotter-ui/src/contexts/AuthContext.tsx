@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import api from '../lib/api'
 
 interface User {
@@ -10,6 +10,8 @@ interface User {
   city?: string
   country?: string
   bio?: string
+  nationality?: string
+  interests?: string
 }
 
 interface AuthContextType {
@@ -27,6 +29,8 @@ interface RegisterData {
   password: string
   firstName: string
   lastName: string
+  city?: string
+  country?: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
