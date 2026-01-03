@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { User } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Search, Eye, Copy, CalendarRange } from 'lucide-react'
 import api from '../lib/api'
 import Header from '../components/Header'
 
@@ -22,11 +20,21 @@ interface PublicTrip {
 }
 
 export default function CommunityPage() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
   const [trips, setTrips] = useState<PublicTrip[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedTrip, setSelectedTrip] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'popular' | 'recent' | 'az'>('popular')
+  const [groupBy, setGroupBy] = useState<'destination' | 'creator'>('destination')
+  const [createLoading, setCreateLoading] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    coverImageUrl: '',
+    startDate: '',
+    endDate: ''
+  })
 
   useEffect(() => {
     loadCommunityTrips()
@@ -43,184 +51,278 @@ export default function CommunityPage() {
     }
   }
 
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.name || !form.description) return
+    setCreateLoading(true)
+    try {
+      const payload = {
+        name: form.name,
+        description: form.description,
+        coverImageUrl: form.coverImageUrl || null,
+        startDate: form.startDate || null,
+        endDate: form.endDate || null
+      }
+      const res = await api.post('/trips/community', payload)
+      const newTrip = res.data?.item || { ...payload, id: crypto.randomUUID(), viewCount: 0, user: { id: 'me', firstName: 'You', lastName: '', photoUrl: null } }
+      setTrips((prev) => [newTrip as PublicTrip, ...prev])
+      setForm({ name: '', description: '', coverImageUrl: '', startDate: '', endDate: '' })
+    } catch (err) {
+      console.error('Failed to share trip:', err)
+    } finally {
+      setCreateLoading(false)
+    }
+  }
+
+  const filteredTrips = useMemo(() => {
+    const items = trips.filter((trip) => {
+      const haystack = `${trip.name} ${trip.description ?? ''} ${trip.user.firstName} ${trip.user.lastName}`.toLowerCase()
+      return haystack.includes(search.toLowerCase())
+    })
+
+    return items.sort((a, b) => {
+      if (sortBy === 'popular') return b.viewCount - a.viewCount
+      if (sortBy === 'recent') return (new Date(b.startDate ?? 0).getTime()) - (new Date(a.startDate ?? 0).getTime())
+      return a.name.localeCompare(b.name)
+    })
+  }, [search, sortBy, trips])
+
+  const groupedTrips = useMemo(() => {
+    const groups: Record<string, PublicTrip[]> = {}
+
+    filteredTrips.forEach((trip) => {
+      const destinationLabel = trip.name?.split('–')[0]?.split('-')[0]?.trim() || 'Destination TBD'
+      const creatorLabel = [trip.user.firstName, trip.user.lastName].filter(Boolean).join(' ') || 'Unknown creator'
+      const key = groupBy === 'creator' ? creatorLabel : destinationLabel
+      groups[key] = groups[key] ? [...groups[key], trip] : [trip]
+    })
+
+    return Object.entries(groups).map(([label, items]) => ({ label, items }))
+  }, [filteredTrips, groupBy])
+
+  const stats = useMemo(() => ({
+    total: trips.length,
+    creators: new Set(trips.map((t) => t.user.id)).size,
+    popular: trips.filter((t) => t.viewCount > 50).length
+  }), [trips])
+
   return (
-    <div style={{ minHeight: '100vh', background: '#fdfcfb' }}>
+    <div className="community-page">
       <Header />
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '3rem 2rem' }}>
-        <div style={{ display: 'flex', gap: '3rem' }}>
-          {/* Main Content - Left Side */}
-          <div style={{ flex: 1 }}>
-            <h2 style={{ 
-              fontSize: '1.75rem', 
-              fontWeight: 700, 
-              color: '#1c1917', 
-              marginBottom: '2rem',
-              borderBottom: '3px solid #2d8b83',
-              paddingBottom: '0.75rem',
-              display: 'inline-block'
-            }}>
-              Community tab
-            </h2>
+      <div className="community-shell">
+        <div className="community-hero">
+          <div>
+            <p className="eyebrow">Community</p>
+            <h1>Discover Trips Shared by Travelers</h1>
+            <p className="lede">Search, filter, and get inspired by journeys planned by the GlobeTrotter community.</p>
+            <div className="community-stats">
+              <div className="stat-pill">
+                <span className="pill-label">Public trips</span>
+                <strong>{stats.total}</strong>
+              </div>
+              <div className="stat-pill">
+                <span className="pill-label">Creators</span>
+                <strong>{stats.creators}</strong>
+              </div>
+              <div className="stat-pill">
+                <span className="pill-label">Trending</span>
+                <strong>{stats.popular}</strong>
+              </div>
+            </div>
+          </div>
+          <div className="community-hero-card">
+            <p>Share your trip, discover hidden gems, and copy itineraries that match your style.</p>
+            <div className="hero-bullets">
+              <span>🔍 Search by destination</span>
+              <span>🎯 Filter by popularity</span>
+              <span>📅 Sort by recency</span>
+            </div>
+          </div>
+        </div>
 
-            {/* Trip Cards with Radio Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              {loading ? (
-                <div style={{ textAlign: 'center', padding: '3rem' }}>
-                  <div style={{ display: 'inline-block', width: '50px', height: '50px', border: '4px solid #e7e5e4', borderTop: '4px solid #2d8b83', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); }}`}</style>
+        <div className="community-layout">
+          <div className="community-main">
+            <div className="form-toggle">
+              <button className="primary" onClick={() => setShowForm((v) => !v)}>
+                {showForm ? 'Hide post form' : 'Post to community'}
+              </button>
+            </div>
+
+            {showForm && (
+            <div className="community-form-card">
+              <div className="form-header">
+                <div>
+                  <p className="eyebrow">Share your trip</p>
+                  <h3>Post to the community</h3>
                 </div>
-              ) : trips.length === 0 ? (
-                <div style={{ 
-                  background: 'white', 
-                  padding: '3rem', 
-                  borderRadius: '1rem', 
-                  textAlign: 'center',
-                  border: '3px solid white',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)' 
-                }}>
-                  <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1c1917', marginBottom: '0.5rem' }}>No Public Trips Yet</h3>
-                  <p style={{ color: '#78716c', fontSize: '1rem' }}>Be the first to share your travel plans with the community!</p>
+                <span className="pill">Public</span>
+              </div>
+              <form className="community-form" onSubmit={handleCreate}>
+                <div className="form-row">
+                  <label>Trip name *</label>
+                  <input
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="e.g., Alps Hiking Escape"
+                    required
+                  />
                 </div>
-              ) : (
-                trips.slice(0, 4).map((trip) => (
-                  <div key={trip.id} style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
-                    {/* Radio Button */}
-                    <div
-                      onClick={() => setSelectedTrip(trip.id)}
-                      style={{
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        border: '3px solid #d6d3d1',
-                        background: selectedTrip === trip.id ? '#2d8b83' : 'white',
-                        cursor: 'pointer',
-                        flexShrink: 0,
-                        marginTop: '0.5rem',
-                        position: 'relative',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => { if (selectedTrip !== trip.id) e.currentTarget.style.borderColor = '#a8a29e' }}
-                      onMouseLeave={(e) => { if (selectedTrip !== trip.id) e.currentTarget.style.borderColor = '#d6d3d1' }}
-                    >
-                      {selectedTrip === trip.id && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '50%',
-                          background: 'white'
-                        }} />
-                      )}
+                <div className="form-row">
+                  <label>Description *</label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="What makes this trip special? Add key highlights, vibe, and who it's great for."
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="form-grid">
+                  <div className="form-row">
+                    <label>Cover image URL</label>
+                    <input
+                      value={form.coverImageUrl}
+                      onChange={(e) => setForm({ ...form, coverImageUrl: e.target.value })}
+                      placeholder="https://images.unsplash.com/..."
+                    />
+                  </div>
+                  <div className="form-row">
+                    <label>Start date</label>
+                    <input
+                      type="date"
+                      value={form.startDate}
+                      onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-row">
+                    <label>End date</label>
+                    <input
+                      type="date"
+                      value={form.endDate}
+                      onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="form-actions">
+                  <button type="submit" className="primary" disabled={createLoading}>
+                    {createLoading ? 'Posting...' : 'Share trip'}
+                  </button>
+                </div>
+              </form>
+            </div>
+            )}
+
+            <div className="community-filters">
+              <div className="filter-input">
+                <Search size={18} />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search trips, destinations, or creators"
+                />
+              </div>
+              <div className="filter-select">
+                <label>Group by</label>
+                <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as any)}>
+                  <option value="destination">Destination</option>
+                  <option value="creator">Creator</option>
+                </select>
+              </div>
+              <div className="filter-select">
+                <label>Sort</label>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+                  <option value="popular">Most viewed</option>
+                  <option value="recent">Newest</option>
+                  <option value="az">A → Z</option>
+                </select>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="community-grid">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <div key={idx} className="trip-card skeleton" />
+                ))}
+              </div>
+            ) : filteredTrips.length === 0 ? (
+              <div className="empty-card">
+                <h3>No public trips yet</h3>
+                <p>Be the first to share your travel plans with the community.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                {groupedTrips.map((group) => (
+                  <div key={group.label} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="pill">{group.label}</div>
+                        <span style={{ color: '#6b7280', fontWeight: 600 }}>{group.items.length} trip{group.items.length > 1 ? 's' : ''}</span>
+                      </div>
+                      <span style={{ color: '#9ca3af', fontSize: '0.9rem' }}>{groupBy === 'creator' ? 'Grouped by creator' : 'Grouped by destination'}</span>
                     </div>
 
-                    {/* Trip Card */}
-                    <div style={{
-                      flex: 1,
-                      background: 'white',
-                      borderRadius: '1.5rem',
-                      border: '3px solid white',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                      overflow: 'hidden',
-                      transition: 'all 0.2s',
-                      minHeight: '180px'
-                    }}
-                    onMouseEnter={(e) => { 
-                      e.currentTarget.style.transform = 'translateY(-4px)'; 
-                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.12)' 
-                    }}
-                    onMouseLeave={(e) => { 
-                      e.currentTarget.style.transform = 'translateY(0)'; 
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)' 
-                    }}>
-                      <div style={{ padding: '2rem' }}>
-                        <h3 style={{ 
-                          fontSize: '1.5rem', 
-                          fontWeight: 700, 
-                          color: '#1c1917', 
-                          marginBottom: '1rem' 
-                        }}>
-                          {trip.name}
-                        </h3>
-                        {trip.description && (
-                          <p style={{ 
-                            color: '#78716c', 
-                            fontSize: '0.95rem', 
-                            lineHeight: '1.6',
-                            marginBottom: '1.5rem'
-                          }}>
-                            {trip.description.length > 150 ? trip.description.substring(0, 150) + '...' : trip.description}
-                          </p>
-                        )}
-                        <div style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center',
-                          paddingTop: '1rem',
-                          borderTop: '2px solid #f5f5f4'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '50%',
-                              background: 'linear-gradient(135deg, #2d8b83 0%, #4db0a8 100%)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'white',
-                              fontWeight: 700,
-                              fontSize: '0.875rem'
-                            }}>
-                              {trip.user.firstName[0]}{trip.user.lastName[0]}
+                    <div className="community-grid">
+                      {group.items.map((trip) => (
+                        <div key={trip.id} className={`trip-card ${selectedTrip === trip.id ? 'active' : ''}`}>
+                          <div className="trip-cover" style={{ backgroundImage: `url(${trip.coverImageUrl || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=900&h=600&fit=crop'})` }} />
+                          <div className="trip-body">
+                            <div className="trip-meta">
+                              <div className="pill">{trip.viewCount} views</div>
+                              {trip.startDate && trip.endDate && (
+                                <div className="meta-inline">
+                                  <CalendarRange size={16} />
+                                  <span>{trip.startDate} → {trip.endDate}</span>
+                                </div>
+                              )}
                             </div>
-                            <div>
-                              <div style={{ fontWeight: 600, color: '#1c1917', fontSize: '0.95rem' }}>
-                                {trip.user.firstName} {trip.user.lastName}
+                            <h3>{trip.name}</h3>
+                            {trip.description && <p>{trip.description.length > 140 ? `${trip.description.slice(0, 140)}...` : trip.description}</p>}
+
+                            <div className="trip-footer">
+                              <div className="author">
+                                <div className="avatar">
+                                  {trip.user.photoUrl ? (
+                                    <img src={trip.user.photoUrl} alt={trip.user.firstName} />
+                                  ) : (
+                                    <span>{trip.user.firstName[0]}{trip.user.lastName[0]}</span>
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="author-name">{trip.user.firstName} {trip.user.lastName}</div>
+                                  <div className="author-role">Trip creator</div>
+                                </div>
                               </div>
-                              <div style={{ color: '#78716c', fontSize: '0.8rem' }}>Trip Creator</div>
+                              <div className="trip-actions">
+                                <button className="ghost" onClick={() => setSelectedTrip(trip.id)}>
+                                  <Eye size={16} /> View
+                                </button>
+                                <button className="primary">
+                                  <Copy size={16} /> Copy trip
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                          <div style={{ 
-                            color: '#78716c', 
-                            fontSize: '0.875rem',
-                            fontWeight: 600 
-                          }}>
-                            {trip.viewCount} views
                           </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Right Side - Description Box */}
-          <div style={{ width: '350px', flexShrink: 0 }}>
-            <div style={{
-              background: 'white',
-              borderRadius: '1rem',
-              border: '3px solid #e7e5e4',
-              padding: '2rem',
-              position: 'sticky',
-              top: '120px'
-            }}>
-              <p style={{ 
-                color: '#57534e', 
-                fontSize: '0.95rem', 
-                lineHeight: '1.8',
-                textAlign: 'justify'
-              }}>
-                Community section where all the users can share their experience about a certain trip or activity.
-                Using this search, groupby or Filter and sort by option, the user can search for the details which they are looking form.
-              </p>
+          <aside className="community-aside">
+            <div className="aside-card">
+              <h4>How to use the community tab</h4>
+              <ul>
+                <li>Search by destination, trip name, or creator</li>
+                <li>Sort by popularity or recency to spot trending trips</li>
+                <li>Open a trip to view highlights and details</li>
+                <li>Copy an itinerary to start planning instantly</li>
+              </ul>
             </div>
-          </div>
+          </aside>
         </div>
       </div>
     </div>
