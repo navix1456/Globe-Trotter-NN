@@ -1,28 +1,74 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Users, MapPin, Activity, TrendingUp } from 'lucide-react'
+import { Users, MapPin, Activity, TrendingUp, Search, Filter, SlidersHorizontal } from 'lucide-react'
 import Header from '../components/Header'
 
 export default function AdminPanelPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'users' | 'cities' | 'activities' | 'trends'>('users')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [groupBy, setGroupBy] = useState('Segment')
+  const [filterBy, setFilterBy] = useState('All')
+  const [sortBy, setSortBy] = useState('Recent')
 
   return (
     <div style={{ minHeight: '100vh', background: '#fdfcfb' }}>
       <Header />
 
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '3rem 2rem' }}>
-        <h1 style={{ 
-          fontSize: '2rem', 
-          fontWeight: 700, 
-          color: '#1c1917', 
-          marginBottom: '3rem',
-          textAlign: 'center'
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          marginBottom: '2rem'
         }}>
-          Admin Panel Screen / Screen 12
-        </h1>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#1c1917', margin: 0 }}>Admin Panel Screen / Screen 12</h1>
+          <p style={{ margin: 0, color: '#6b7280' }}>Monitor users, destinations, and trends with quick grouping, filtering, and sorting controls.</p>
+        </div>
+
+        {/* Toolbar */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          padding: '0.85rem 1rem',
+          background: 'white',
+          borderRadius: '1rem',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 6px 18px rgba(0,0,0,0.05)',
+          marginBottom: '1.5rem'
+        }}>
+          <div style={{ fontWeight: 700, color: '#1f2937', minWidth: '140px' }}>GlobalTrotter</div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '0.5rem 0.75rem', background: '#f9fafb' }}>
+            <Search size={16} color="#6b7280" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search bar ..."
+              style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: '0.95rem', color: '#111827' }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.9rem', color: '#374151' }}>Group by</label>
+            <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} style={{ padding: '0.45rem 0.75rem', borderRadius: '0.6rem', border: '1px solid #e5e7eb', background: 'white' }}>
+              <option>Segment</option>
+              <option>Region</option>
+              <option>Activity</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button type="button" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', borderRadius: '0.6rem', border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontWeight: 600 }}>
+              <Filter size={16} />
+              {filterBy}
+            </button>
+            <button type="button" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', borderRadius: '0.6rem', border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontWeight: 600 }}>
+              <SlidersHorizontal size={16} />
+              Sort by {sortBy}
+            </button>
+          </div>
+        </div>
 
         <div style={{ display: 'flex', gap: '2rem' }}>
           {/* Main Content */}
@@ -31,7 +77,7 @@ export default function AdminPanelPage() {
             <div style={{ 
               display: 'flex', 
               gap: '1rem',
-              marginBottom: '2rem',
+              marginBottom: '1.5rem',
               flexWrap: 'wrap'
             }}>
               <button
@@ -120,16 +166,31 @@ export default function AdminPanelPage() {
             <div style={{
               background: 'white',
               borderRadius: '1.5rem',
-              border: '3px solid white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-              padding: '3rem',
-              minHeight: '500px'
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
+              padding: '2.5rem',
+              minHeight: '540px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem'
             }}>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700, color: '#1f2937' }}>Overview</span>
+                <span style={{ padding: '0.35rem 0.65rem', background: '#f3f4f6', borderRadius: '0.65rem', color: '#4b5563', fontSize: '0.9rem' }}>Live snapshot</span>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', color: '#6b7280', fontSize: '0.9rem' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#2d8b83', display: 'inline-block' }} /> Users</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#f97316', display: 'inline-block' }} /> Activities</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#10b981', display: 'inline-block' }} /> Cities</span>
+                </div>
+              </div>
+              <div style={{ color: '#6b7280', fontSize: '0.9rem' }}>
+                View set • Group: {groupBy} · Filter: {filterBy} · Sort: {sortBy} · Search: {searchQuery || 'All'}
+              </div>
+
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: '2rem',
-                marginBottom: '2rem'
+                gap: '2rem'
               }}>
                 {/* Pie Chart Placeholder */}
                 <div style={{
@@ -174,7 +235,7 @@ export default function AdminPanelPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minHeight: '250px'
+                minHeight: '230px'
               }}>
                 <div style={{ textAlign: 'center', color: '#a8a29e' }}>
                   <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>📉</div>
@@ -186,7 +247,7 @@ export default function AdminPanelPage() {
           </div>
 
           {/* Info Box */}
-          <div style={{ width: '350px', flexShrink: 0 }}>
+          <aside style={{ width: '350px', flexShrink: 0 }}>
             <div style={{
               background: 'white',
               borderRadius: '1rem',
@@ -206,7 +267,6 @@ export default function AdminPanelPage() {
                 {activeTab === 'activities' && 'Popular Activities:'}
                 {activeTab === 'trends' && 'User Trends and Analytics:'}
               </h3>
-              
               <div style={{
                 fontSize: '0.95rem',
                 color: '#57534e',
@@ -235,7 +295,7 @@ export default function AdminPanelPage() {
                 )}
               </div>
             </div>
-          </div>
+          </aside>
         </div>
 
         {/* Back Button */}
